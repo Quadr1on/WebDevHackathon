@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecondChance Market</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.10.5/cdn.min.js" defer></script>
+</head>
+<body>
+    <div x-data="{ 
+        products: [],
+        searchQuery: '',
+        cart: [],
+        async fetchProducts() {
+            const response = await fetch(`/api/products?search=${this.searchQuery}`);
+            this.products = await response.json();
+        },
+        async fetchCart() {
+            const response = await fetch('/api/cart');
+            this.cart = await response.json();
+        },
+        async addToCart(product) {
+            const existingItem = this.cart.find(item => item.id === product.id);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                this.cart.push({ ...product, quantity: 1 });
+            }
+            await this.updateCart();
+        },
+        async updateCart() {
+            await fetch('/api/cart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(this.cart),
+            });
+        },
+        cartCount() {
+            return this.cart.reduce((total, item) => total + item.quantity, 0);
+        }
+    }" x-init="fetchProducts(); fetchCart()">
+        <header>
+            <div class="container header-content">
+                <h1 class="site-title">SecondChance Market</h1>
+                <div class="search-container">
+                    <input 
+                        x-model="searchQuery"
+                        @input.debounce.300ms="fetchProducts"
+                        type="text"
+                        placeholder="Search products..."
+                        class="search-input"
+                    >
+                    <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                </div>
+                <a href="{{ url_for('cart_page') }}" class="cart-button">
+                    <svg class="cart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                    <span class="cart-count" x-text="cartCount()"></span>
+                </a>
+            </div>
+        </header>
+
+        <main>
+            <div class="container">
+                <div class="product-grid">
+                    <template x-for="product in products" :key="product.id">
+                        <div class="product-card">
+                            <img :src="product.image" :alt="product.name" class="product-image">
+                            <div class="product-info">
+                                <h2 x-text="product.name" class="product-name"></h2>
+                                <p class="product-price">$<span x-text="product.price"></span></p>
+                                <button class="add-to-cart" @click="addToCart(product)">
+                                    <svg class="cart-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                    Add to Cart
+                                </button>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>

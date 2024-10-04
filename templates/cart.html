@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Cart - SecondChance Market</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style1.css') }}">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.10.5/cdn.min.js" defer></script>
+</head>
+<body>
+    <div x-data="{ 
+        cart: [],
+        async fetchCart() {
+            const response = await fetch('/api/cart');
+            this.cart = await response.json();
+        },
+        async updateQuantity(productId, newQuantity) {
+            const item = this.cart.find(item => item.id === productId);
+            if (item) {
+                item.quantity = newQuantity;
+                if (item.quantity <= 0) {
+                    this.cart = this.cart.filter(item => item.id !== productId);
+                }
+            }
+            await this.updateCart();
+        },
+        async updateCart() {
+            await fetch('/api/cart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(this.cart),
+            });
+        },
+        cartTotal() {
+            return this.cart.reduce((total, item) => total + item.price * item.quantity, 0).toFixed(2);
+        }
+    }" x-init="fetchCart()">
+        <header>
+            <div class="container header-content">
+                <h1 class="site-title">SecondChance Market</h1>
+                <a href="{{ url_for('index') }}" class="back-to-shop">Back to Shop</a>
+            </div>
+        </header>
+
+        <main>
+            <div class="container">
+                <h2 class="cart-title">Your Cart</h2>
+                <div class="cart-items">
+                    <template x-for="item in cart" :key="item.id">
+                        <div class="cart-item">
+                            <img :src="item.image" :alt="item.name" class="cart-item-image">
+                            <div class="cart-item-details">
+                                <h3 x-text="item.name" class="cart-item-name"></h3>
+                                <p class="cart-item-price">$<span x-text="item.price"></span></p>
+                                <div class="quantity-control">
+                                    <button @click="updateQuantity(item.id, item.quantity - 1)" class="quantity-btn">-</button>
+                                    <span x-text="item.quantity" class="quantity-display"></span>
+                                    <button @click="updateQuantity(item.id, item.quantity + 1)" class="quantity-btn">+</button>
+                                </div>
+                            </div>
+                            <p class="cart-item-total">$<span x-text="(item.price * item.quantity).toFixed(2)"></span></p>
+                        </div>
+                    </template>
+                </div>
+                <div class="cart-summary">
+                    <h3 class="cart-total">Total: $<span x-text="cartTotal()"></span></h3>
+                    <button class="checkout-btn">Proceed to Checkout</button>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
